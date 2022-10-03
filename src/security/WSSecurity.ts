@@ -1,7 +1,6 @@
 
-import * as crypto from 'crypto';
 import { ISecurity } from '../types';
-import { passwordDigest, xmlEscape } from '../utils';
+import { passwordDigest, passwordDigestExt, xmlEscape } from '../utils';
 
 const validPasswordTypes = ['PasswordDigest', 'PasswordText'];
 
@@ -87,10 +86,9 @@ export class WSSecurity implements ISecurity {
     let password;
     let nonce;
     if (this._hasNonce || this._passwordType !== 'PasswordText') {
-      // nonce = base64 ( sha1 ( created + random ) )
-      const nHash = crypto.createHash('sha1');
-      nHash.update(created + Math.random());
-      nonce = nHash.digest('base64');
+      // nonce = base64 ( created )
+      let buff = Buffer.from(now.getTime().toString());
+      nonce = buff.toString('base64');
     }
     if (this._passwordType === 'PasswordText') {
       password = '<wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText">' + xmlEscape(this._password) + '</wsse:Password>';
@@ -100,15 +98,15 @@ export class WSSecurity implements ISecurity {
     } else {
       /* Specific Testcase for passwordDigest calculation cover this code
       /* istanbul ignore next */
-      password = '<wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">' + passwordDigest(nonce, created, this._password) + '</wsse:Password>' +
+      password = '<wsse:Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">' + passwordDigestExt(now.getTime().toString(), created, this._password) + '</wsse:Password>' +
         '<wsse:Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">' + nonce + '</wsse:Nonce>';
     }
 
     return '<wsse:Security ' + (this._actor ? `${this._envelopeKey}:actor="${this._actor}" ` : '') +
       (this._mustUnderstand ? `${this._envelopeKey}:mustUnderstand="1" ` : '') +
-      'xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">' +
+      'xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">' +
       timeStampXml +
-      '<wsse:UsernameToken xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="SecurityToken-' + created + '">' +
+      '<wsse:UsernameToken xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="UsernameToken-' + created + '">' +
       '<wsse:Username>' + xmlEscape(this._username) + '</wsse:Username>' +
       password +
       (this._hasTokenCreated ? '<wsu:Created>' + created + '</wsu:Created>' : '') +

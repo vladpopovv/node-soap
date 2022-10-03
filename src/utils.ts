@@ -15,6 +15,13 @@ export function passwordDigest(nonce: string, created: string, password: string)
   return pwHash.digest('base64');
 }
 
+export function passwordDigestExt(nonce: string, created: string, password: string): string {
+  // digest = base64 ( sha1 ( nonce + created + password ) )
+  const pwHash = crypto.createHash('sha1');
+  pwHash.update(nonce + created + password);
+  return pwHash.digest('base64');
+}
+
 export const TNS_PREFIX = '__tns__'; // Prefix for targetNamespace
 
 /**
